@@ -1,0 +1,36 @@
+body,iframe,textarea,table,input,button,input[type="file"],.but{
+	font-family: Arial, "MS Trebuchet", sans-serif;
+	font-size: 12;
+	background-color: #292929; 
+	color:#aaa;
+	border-color:#777;
+	border-style:solid;
+	border-width:1
+}
+a{
+	text-decoration: none;
+	color:#bbb;
+}
+a:hover{
+	color:#ddd;
+}
+body{
+	margin: 15 15 15 15;
+	border: 0;
+}
+table{
+	width: 100%;
+	border-color: #777;	
+	color: #aaa;
+}
+th{
+	background-color: #494949; 
+	color:#bbb;
+}
+textarea,pre{
+	font-family: Lucida Console;
+}
+.H {
+	font-size: 15;
+	padding: 10 3 3 12;
+}

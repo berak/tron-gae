@@ -1,0 +1,24 @@
+application: tron-game
+version: 1
+runtime: python
+api_version: 1
+  
+builtins:
+- datastore_admin: on
+
+handlers:
+- url: /res
+  static_dir: res
+  
+- url: /bbs/*.*
+  script: bbs.py
+- url: /info/*.*
+  script: info.py
+- url: /worker/*.*
+  script: worker.py
+- url: /maps/*.*
+  script: maps.py
+- url: /up/*.*
+  script: code.py
+- url: .*
+  script: front.py
