@@ -1,19 +1,5 @@
 #!/usr/bin/env python
-#
-# Copyright 2017 Noodle Dec.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
+
 from google.appengine.api import taskqueue
 
 from google.appengine.ext import db
@@ -49,11 +35,15 @@ def run_game():
     maps = tron_db.Map.all(keys_only=True).fetch(1000)
     mkey = random.choice(maps)
     map  = tron_db.Map.get(mkey)
-    g.grid, g.height, g.width, players = tron.parse_map(map.text)
-    
+    try:
+        g.grid, g.height, g.width, players = tron.parse_map(map.text)
+    except:
+        logging.warn("MAP " + str(map.key().name()) + " borked!")
+        return
     # get players
     keys = tron_db.Program.all(keys_only=True).fetch(1000)
     rnk  = random.sample(keys, players)
+
     prog = []
     for k in rnk:
         p = tron_db.Program.get(k)
@@ -76,7 +66,7 @@ def run_game():
             logging.info(p['name'] + " : " + g.errors[i])
         sav.errors.append(g.errors[i])
         sav.players.append(p['name'])
-        sav.history.append(p['hist'])
+        sav.history.append(p['hist'][:500])
         sav.rank.append(p['score'])
         if p['score'] == 0:
             prog[i].won += 1

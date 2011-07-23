@@ -3,8 +3,12 @@ import random
 import time
 import logging
 
+class MapLineSizeError(BaseException):
+	pass
+
 def parse_map( maptext ):
 	lines = maptext.split('\n')
+	cc = 0
 	r=0
 	players = 0
 	grid=[]
@@ -13,20 +17,27 @@ def parse_map( maptext ):
 		if line[0] != '#': continue
 		grid.append([])
 		c=0
-		for ch in line:
+		for ch in line.strip():
 			grid[r].append(str(ch))
 			if ch in "12345678":
 				players += 1
 			c += 1
+			
+		# check if all lines got equal len	
+		if r==0: 
+			cc = c
+		else:
+			if c != cc:
+				raise MapLineSizeError("lines")
 		r += 1
-
+	#~ print( "map: " + str(r) + " " + str(c))
 	#~ logging.info( "map: " + str(r) + " " + str(c))
 	return grid, r, c, players
 
 
-def find_map( grid, h, w, id ):
-	for r in range(h):
-		for c in range(w):
+def find_map( grid, id ):
+	for r in range(len(grid)):
+		for c in range(len(grid[0])):
 			if grid[r][c] == str(id):
 				return r, c
 	return -1,-1
@@ -73,7 +84,7 @@ class Game(object):
 		p['name']  = name
 		p['score'] = 100 - alive*100
 		p['alive'] = alive
-		p['r'], p['c'] = find_map( self.grid, self.height, self.width, p['id'] )
+		p['r'], p['c'] = find_map( self.grid, p['id'] )
 
 		self.players.append(p)
 		self.errors.append(err)
@@ -108,7 +119,7 @@ class Game(object):
 				continue
 			t1 = time.time()
 			if t1 - t0 > 1:
-				self.errors[i] = " timed out %d s." % (t1-t0)
+				self.errors[i] = " timed out %3.3f s." % (t1-t0)
 				self.lost(p)
 				continue
 			if not ( p['step'] in self.VALID ):
@@ -157,7 +168,42 @@ class Game(object):
 			for i,p in enumerate(self.players):	print p['score'], p['id'], p['name'], len(p['hist']), p['hist'], self.errors[i]
 
 
+#~ frodo="""
+#~ DIRS=["N","E","S","W"]
+#~ STEPS={'N':[-1,0],'S':[1,0],'E':[0,1],'W':[0,-1]};       
+#~ def walk(r,c,dir): 
+    #~ return r+STEPS[dir][0], c+STEPS[dir][1]           
+#~ def passable(board,r,c): 
+    #~ if r<0 or c<0: 
+        #~ return false
+    #~ return board[r][c] == ' '
 
+#~ def count_neighbours( b,r,c ):
+    #~ n = 0
+    #~ for d2 in DIRS:
+        #~ r2,c2=walk(r,c,d2)
+        #~ if passable(b,r2,c2):
+            #~ n += 1
+    #~ return n
+
+#~ d = 'N'
+#~ def turn(board,r,c): 
+    #~ global d
+    #~ r2,c2 = walk( r,c, d )
+    #~ if passable( board, r2,c2 ):
+        #~ return d 
+
+    #~ m = 0
+    #~ md = 'S'    
+    #~ for d2 in DIRS:
+        #~ r2,c2=walk(r,c,d2)
+        #~ n = count_neighbours(board,r2,c2)
+        #~ if n > m:
+            #~ m = n
+            #~ md = d2
+    #~ return md
+
+#~ """
 #~ north="""
 #~ def turn( board, r,c ):
 	#~ return "N"
@@ -187,12 +233,15 @@ class Game(object):
 	#~ return 'E'
 #~ """
 
+if __name__ == '__main__':
 
-#~ g = Game()
-#~ g.readmapfile("maps\maze.txt")
-#~ g.add_player(ran, "Randor")
-#~ g.add_player(err, "Err")
-#~ g.add_player(free, "Freon")
-#~ # g.add_player(free, "Freebie")
-#~ # g.add_player(ran, "Randex")
-#~ g.run(True)
+
+
+	g = Game()
+	g.readmapfile("maps\mazor.txt")
+	g.add_player(frodo, "Frodo")
+	g.add_player(north, "NORTH")
+	g.add_player(free, "Freon")
+	g.add_player(free, "Freebie")
+	# g.add_player(ran, "Randex")
+	g.run(True)

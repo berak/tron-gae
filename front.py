@@ -1,19 +1,5 @@
 #!/usr/bin/env python
-#
-# Copyright 2017 Noodle Dec.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-#
+
 from google.appengine.api import taskqueue
 
 from google.appengine.ext import db
@@ -94,7 +80,6 @@ class UserHandler(webapp.RequestHandler):
     def get(self):         
         user=self.request.get("name")
         r = tron_db.Program.all().filter("name",user).get()
-        #~ r = db.GqlQuery("select * from Program where name=:1",user).get()
         self.response.out.write( header("Profile for '" + user + "'") )
         self.response.out.write( "<table>" )
         self.response.out.write( tron_db.Program_head )
@@ -143,14 +128,12 @@ def drawNaked(key, w, h):
     rep['board'],rep['h'],rep['w'],players = tron.parse_map(map.text)
 
     return """
-    <canvas width="""  + str(w)+ " height="+str(h)+""" id='C'>
+    <!--[if IE]><script src="res/excanvas.compiled.js"></script><![endif]-->    
+    <canvas width=""" +str(w)+ " height=" +str(h+20)+ """ id='C'>
     <p>
-    <div align=center>
-    <a href='javascript:back()'>&lt;</a>&nbsp;
-    <a href='javascript:stop()'>stop</a>&nbsp;
-    <a href='javascript:forw()'>&gt;</a>&nbsp;
-    </div>
     <script>
+        the_turn = 0
+        tick = -1
         replay = """ + simplejson.dumps(rep) + """;
         dirs={'N':[-1,0],'S':[1,0],'E':[0,1],'W':[0,-1]};
         colors = {
@@ -162,58 +145,85 @@ def drawNaked(key, w, h):
             '4':'rgb(255,255,0)',
             '5':'rgb(255,0,255)',
             };
+        sw = Math.floor("""+str(w)+""" / replay['w'])
+        sh = Math.floor("""+str(h)+""" / replay['h'])
+        nplayers = replay['players'].length
+        C = document.getElementById('C')
+        V = C.getContext('2d');
+        for ( i=0; i<nplayers; i++ ) {
+            V.fillStyle = colors[i+1]
+            V.fillText(replay['players'][i], (i+1)*70, 410)
+        }
+        
         function drawboard(turn) {
-            C = document.getElementById('C')
-            V = C.getContext('2d');
-            sw = """+str(w)+""" / replay['w']
-            sh = """+str(h)+""" / replay['h']
             ppos = []
+
+            // draw base board and collect players
             for (r=0; r<replay['h']; r++) {
                 for (c=0; c<replay['w']; c++) {
                     elm = replay['board'][r][c]
                     if ( elm in ['1','2','3','4'] ) {
-                        ppos.push( [r,c,elm] )
+                        ppos[elm-1]= [r,c]
                     }
                     V.fillStyle = colors[elm]
                     V.fillRect(c*sw,r*sh,sw,sh)
-                    //V.fillStyle = 'rgb(100,0,100)'
-                    //V.fillRect(c*sw+3,r*sh+3,sw-3,sh-3)
                 }
             }
+            //alert(ppos)
+            // overlay moves
             for (t=0; t<turn; t++) {
-                for (p=0; p<replay['players'].length; p++) {
+                for (p=0; p<ppos.length; p++) {
                     hist = replay['history'][p]
                     if (hist.length > t) {
                         dr = dirs[hist[t]][0]
                         dc = dirs[hist[t]][1]
                         r  = dr + ppos[p][0] 
                         c  = dc + ppos[p][1] 
-                        if (c<0) c=0; 
                         if (r<0) r=0; 
-                        if (c>C.width)  c=C.width; 
+                        if (c<0) c=0; 
                         if (r>C.height) r=C.height; 
-                      //  alert(replay['players'][p] + " " + replay['history'][p][t] + " " + r + " " + c + " " + ppos[p] )
+                        if (c>C.width)  c=C.width; 
                         ppos[p][0] = r
                         ppos[p][1] = c                            
-                        V.fillStyle = colors[ppos[p][2]]
+                        V.fillStyle = colors[p+1]
                         V.fillRect(c*sw,r*sh,sw,sh)
                     }
                 }
-                //alert(t)
             }
         }
         function stop() {
             clearInterval(tick)
             tick=-1
         }
-        the_turn = 0
-        tick = setInterval( function() {
-            if (the_turn <= replay['turns'])
-            {
-                drawboard(the_turn)
+        function back() {
+            stop()
+            if ( the_turn > 0 ) 
+                the_turn -= 1
+            drawboard(the_turn)
+        }
+        function forw() {
+            stop()
+            if ( the_turn < replay['turns'] ) 
                 the_turn += 1
-            }
-        },500)
+            drawboard(the_turn)
+        }
+        function pos(t) {
+            stop()
+            the_turn = t
+            drawboard(the_turn)
+        }
+        function play() {
+            tick = setInterval( function() {
+                if (the_turn <= replay['turns'])
+                {
+                    drawboard(the_turn)
+                    the_turn += 1
+                } else {
+                    stop()
+                }
+            },300)
+        }
+        play()
     </script>"""
 
 
@@ -228,13 +238,23 @@ class ReplayVizHandler(webapp.RequestHandler):
             pass
         if not w : w=400
         if not h : h=400
+        game = tron_db.GameInfo.get_by_id(int(key))
         s  = header()
-        s += "<table border=0 ><tr><td>"
+        s += "<table border=0 ><tr><td align=center>"
+        s += """
+        <div  width=""" +str(w)+ """>
+        <a href='javascript:pos(0)'>&lt;&lt;</a>&nbsp;
+        <a href='javascript:back()'>&lt;</a>&nbsp;
+        <a href='javascript:stop()'>stop</a>&nbsp;
+        <a href='javascript:play()'>play</a>&nbsp;
+        <a href='javascript:forw()'>&gt;</a>&nbsp;
+        <a href='javascript:pos("""+str(game.turn)+""")'>&gt;&gt;</a>&nbsp;
+        </div>
+        """
         s += drawNaked( key, w, h )
         s += "</td><td>"
-        game = tron_db.GameInfo.get_by_id(int(key))
         s += "game " + str(game.key().id()) + "<br><br>"
-        s += "map  " + str(w) +  " " + str(h) + "<br><br>"
+        s += "map  " + game.mapname + "<br><br>"
         s += "<table width=100%>"
         for i,p in enumerate(game.players):
             s += "<tr><td>" + p + "</td><td>" + str(game.rank[i])+ "</td><td>" + game.history[i] + "</td><td>" + game.errors[i] + "</td></tr>"
@@ -250,7 +270,7 @@ class MainHandler(webapp.RequestHandler):
         s = header();
         s += """
         <br><p><h3>Welcome to Tron reloaded!</h3>
-        This is a programming competition for bots written in <a href='http://python.org'>Python</a>,<br>
+        It's a small programming competition for bots written in <a href='http://python.org'>Python</a>,<br>
         inspired by the <a href ='http://csclub.uwaterloo.ca/contest'>google ai tron contest</a>,
         and the <a href='http://www.rpscontest.com'>rock-paper-scissors competition</a>.<p>
         Just <a href='/up/form'>submit your code</a> and let your bot play on this server.<br>
@@ -259,7 +279,7 @@ class MainHandler(webapp.RequestHandler):
         """
         
         gameid = tron_db.GameInfo.all().order("-date").get().key().id()
-        s += str(gameid) +"<div>" + drawNaked( gameid,200,200 )+"</div>"
+        s += str(gameid) +"<div>" + drawNaked( gameid,200,200 ) + "</div>"
         s += footer()
         self.response.out.write( s )
 
@@ -280,7 +300,6 @@ def main():
 
     
 if __name__ == '__main__':
-    #~ profile_main()
     main()
 
 

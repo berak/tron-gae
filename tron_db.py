@@ -96,7 +96,7 @@ def userlist(r):
         e = ""
         if r.errors[i]:
             e = r.errors[i]
-        s += "&nbsp;&nbsp;<a href=/bots?name="+u+" title='"+e+"'>"
+        s += "&nbsp;&nbsp;<a href=/bots?name="+u+" title=\""+e+"\">"
         if r.rank[i]==0:
             s += "<b>"+u+"</b>"
         elif e:
