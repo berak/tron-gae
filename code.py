@@ -85,7 +85,8 @@ class CodeUpForm(webapp.RequestHandler):
            return r+STEPS[dir][0], c+STEPS[dir][1]
            
         def passable(board,r,c): 
-           return board[r][c] == ' '
+            if r<0 or c<0 or (r >= len(board)) or (c >= len(board[0])) or board[r][c] != ' ':
+                return False
            
         </pre>
         </td></tr></table><br>

@@ -86,28 +86,28 @@ class GamePlayHandler(webapp.RequestHandler):
         s = "<b>play an (unranked) match. it's you against the machine, or bot vs bot</b><p>"
         s += "<form action=/play>"
         s += "<textarea rows=10 cols=90 name=code>"+player_code+"</textarea><br>"
-        s += "<select name=player1>"
+        s += "<select name=player1 title=player1>"
         if player1:
             s += "<option>" + player1 + "</option>\n"
         s += "<option> ME </option>\n"
         for p in pl:
             s += "<option>" + p.name + "</option>\n"
         s += "</select>"
-        s += "<select name=player2>"
+        s += "<select name=player2 title=player2 >"
         if player2:
             s += "<option>" + player2 + "</option>\n"
         for p in pl:
             s += "<option>" + p.name + "</option>\n"
         s += "<option> ME </option>\n"
         s += "</select>"
-        s += "<select name=maps>"
+        s += "<select name=maps title=map>"
         if map_name:
             s += "<option>" + map_name + "</option>\n"
         for m in mp:
             g,r,c,p = tron.parse_map(m.text)
             if p == 2:
                 s += "<option>" + str(m.key().name()) + "</option>\n"
-        s += "</select>"
+        s += "</select>&nbsp;&nbsp;"
         s += "<input type=submit value='play a game'>"
         s += "</form>"
         if map_name and player1 and player2:
@@ -247,19 +247,19 @@ class MainHandler(webapp.RequestHandler):
     def get(self):   
         s = header();
         s += """
-        <br><p><h3>Welcome to Tron reloaded!</h3>
+        <br><p><h3>Welcome to <a href='https://github.com/berak/tron-gae/' title='da source'>Tron reloaded</a>!</h3>
         It's a small programming competition for bots written in <a href='http://python.org'>Python</a>,<br>
         inspired by the <a href ='http://csclub.uwaterloo.ca/contest'>google ai tron contest</a>,
         and the <a href='http://www.rpscontest.com'>rock-paper-scissors competition</a>.<p>
-        Just <a href='/up/form'>submit your code</a> to the competition, or <a href=/play> code live </a> against the bots on this server.<br>
+        Just <a href='/up/form'>submit your bot</a> to the competition, or <a href=/play> code live </a> against the bots on this server.<br>
         You can update (or submit another bot) as often as you like. <br>
-        bots that caused more than 50 crashes or timeouts will have to expose their source code.<p><br><br>
+        Bots that caused more than 50 crashes or timeouts will see their source code exposed.<p><br><br>
         Watch the latest game:&nbsp;
         """
         
         game = tron_db.GameInfo.all().order("-date").get()
         map = tron_db.Map.get_by_key_name(game.mapname)
-        s += str(game.key().id()) +"<div  onBlur='javascript:stop()'>"
+        s += "<a href=/viz?key="+str(game.key().id())+">"+str(game.key().id()) +"</a><div  onBlur='javascript:stop()'>"
         s += drawNaked(game.players,game.history,map.text,game.turn,200,200 )
         s += "</div>"
         s += footer()

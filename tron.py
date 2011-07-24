@@ -162,7 +162,9 @@ class Game(object):
 			if debug:
 				self.print_board()
 			self.turn += 1
-			if self.alive() < 1 or self.turn >= 500:
+			if self.alive() <= 1 and self.turn >= 200:
+				break
+			if self.turns > 500:
 				break
 		if debug: 
 			for i,p in enumerate(self.players):	print p['score'], p['id'], p['name'], len(p['hist']), p['hist'], self.errors[i]

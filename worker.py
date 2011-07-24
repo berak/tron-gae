@@ -22,9 +22,9 @@ import tron
 import tron_db
 from Header import header,footer
 TS_MU = 38.0
-MGAMES = 5
+MGAMES = 1
 TIMEOUT_RANK = 200
-TIMEOUT_WORK = 60
+TIMEOUT_WORK = 9
 
 
 

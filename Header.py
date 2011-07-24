@@ -4,8 +4,7 @@ def header(title=""):
     <html><head><title>"""+title+"""</title><link rel='stylesheet' href='/res/main.css'></head>
         <div  class='H'>
         <form action=/bots/search><b>
-        <img src="/res/tron.png" height=15>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-        <a href=/ name=top> home </a> &nbsp;&nbsp;&nbsp;&nbsp;
+        <a href=/ name=top> <img src="/res/tron.png" height=14 border=0> </a> &nbsp;&nbsp;&nbsp;&nbsp;
         <a href=/bots/> leaderboard </a> &nbsp;&nbsp;&nbsp;&nbsp;
         <a href=/games/> games </a> &nbsp;&nbsp;&nbsp;&nbsp;
         <a href=/play> play </a> &nbsp;&nbsp;&nbsp;&nbsp;

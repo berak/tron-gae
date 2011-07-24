@@ -39,7 +39,7 @@ class BulletinThreadHandler(webapp.RequestHandler):
         <table>
         <tr><td>
         <form action=/bbs/add onSubmit='return valid()' method=post>
-        <textarea name=text rows=2 cols=110></textarea></td><td>
+        <textarea name=text rows=2 cols=100></textarea></td><td>
         <input type=hidden name=ref value="""+str(id)+""">
         <input type=text name=author title='author'>
         <input type=submit value='add an entry'>
