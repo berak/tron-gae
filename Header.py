@@ -8,6 +8,7 @@ def header(title=""):
         <a href=/ name=top> home </a> &nbsp;&nbsp;&nbsp;&nbsp;
         <a href=/bots/> leaderboard </a> &nbsp;&nbsp;&nbsp;&nbsp;
         <a href=/games/> games </a> &nbsp;&nbsp;&nbsp;&nbsp;
+        <a href=/play> play </a> &nbsp;&nbsp;&nbsp;&nbsp;
         <a href=/up/form > upload </a> &nbsp;&nbsp;&nbsp;&nbsp;
         <a href=/maps/> maps </a> &nbsp;&nbsp;&nbsp;&nbsp;
         <a href=/bbs/all > bbs </a> </b>&nbsp;&nbsp;&nbsp;&nbsp;
@@ -23,7 +24,7 @@ def footer():
     <br>
     <!--a href=#top title='top'>^</a-->
     <p>
-    <div> <font color=#333>kunst ist schoen, macht aber viel arbeit</font></div>
+    <div> <font color=#272727>kunst ist schoen, macht aber viel arbeit</font></div>
     </body>
     </html>
     """
@@ -45,3 +46,6 @@ def validate_form(n=1):
             }
     </script>
     """
+
+def sorry_404(item):
+    return header('404') + "<br><br>sorry, we could not find " + str(item) + ".<br>" + footer()

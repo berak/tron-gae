@@ -261,7 +261,7 @@ def DrawMargin(p, beta, total_players=2):
   return invcdf((p+1.0)/2) * sqrt(total_players) * beta
 
 
-INITIAL_MU = 50.0
+INITIAL_MU = 38.0
 INITIAL_SIGMA = INITIAL_MU / 3.0
 
 def SetParameters(beta=None, epsilon=None, draw_probability=None,

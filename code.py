@@ -48,7 +48,7 @@ class CodeUpLoad(webapp.RequestHandler):
 
 class CodeUpForm(webapp.RequestHandler):           
     def get(self):
-        res = header()
+        res = header("submit a bot to the competition")
         res += validate_form(1)
         res += """
         <br>

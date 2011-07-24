@@ -20,7 +20,9 @@ from django.utils import simplejson
 
 import tron
 import tron_db
-from Header import header,footer
+from Header import header,footer,sorry_404
+from replay import drawNaked, drawReplay
+
 TABSIZE = 40
 
 
@@ -47,6 +49,90 @@ def table_pager( url, cnt=0 ):
         if i >= 10: break
     return l
 
+
+
+
+def playgame(g,players,map_text,map_name ):          
+    # get a map
+    try:
+        g.grid, g.height, g.width, nplayers = tron.parse_map(map_text)
+    except:
+        logging.warn("MAP " + str(map_name) + " borked!")
+        return None
+
+    for p in players:
+        g.add_player( p.text, p.name )
+        
+    # dbg info
+    s = "play: " + map_name + " : "
+    for i,p in enumerate(g.players):
+        s += p['name'] + " ";
+    logging.info( s );   
+    
+    # play a game
+    g.run()
+        
+class GamePlayHandler(webapp.RequestHandler):
+    def get(self):          
+        map_name = self.request.get("maps")
+        player1 = self.request.get("player1")
+        player2 = self.request.get("player2")
+        player_code = self.request.get("code").replace('\r','')
+        if not player_code: 
+            player_code = "def turn(b,r,c):"+'\n'+"  return 'E'";
+        self.response.out.write( header() )
+        pl = tron_db.Program.all().fetch(50)
+        mp = tron_db.Map.all().fetch(50)
+        s = "<b>play an (unranked) match. it's you against the machine, or bot vs bot</b><p>"
+        s += "<form action=/play>"
+        s += "<textarea rows=10 cols=90 name=code>"+player_code+"</textarea><br>"
+        s += "<select name=player1>"
+        if player1:
+            s += "<option>" + player1 + "</option>\n"
+        s += "<option> ME </option>\n"
+        for p in pl:
+            s += "<option>" + p.name + "</option>\n"
+        s += "</select>"
+        s += "<select name=player2>"
+        if player2:
+            s += "<option>" + player2 + "</option>\n"
+        for p in pl:
+            s += "<option>" + p.name + "</option>\n"
+        s += "<option> ME </option>\n"
+        s += "</select>"
+        s += "<select name=maps>"
+        if map_name:
+            s += "<option>" + map_name + "</option>\n"
+        for m in mp:
+            g,r,c,p = tron.parse_map(m.text)
+            if p == 2:
+                s += "<option>" + str(m.key().name()) + "</option>\n"
+        s += "</select>"
+        s += "<input type=submit value='play a game'>"
+        s += "</form>"
+        if map_name and player1 and player2:
+            map = tron_db.Map.get_by_key_name(map_name)
+            if player1=="ME" and player_code: 
+                pl1 = tron_db.Program(text=player_code,name=player1)
+            else: 
+                pl1 = tron_db.Program.all().filter("name",player1).get()
+                
+            if player2=="ME" and player_code: 
+                pl2 = tron_db.Program(text=player_code,name=player2)
+            else: 
+                pl2 = tron_db.Program.all().filter("name",player2).get()
+            if map and pl1 and pl2:
+                g = tron.Game()
+                playgame(g,[pl1,pl2],map.text, map_name)
+                plan = [player1,player2]
+                hist = [g.players[0]['hist'],g.players[1]['hist']]
+                rank = [g.players[0]['score'],g.players[1]['score']]
+                s += drawReplay(42,plan,hist,g.errors,rank,map_name,map.text,g.turn )
+            else:
+                logging.warn("invalid setup " + str(map) + " " + str(pl1) + " " + str(pl2))
+        self.response.out.write( s )
+        self.response.out.write( footer() )
+        
         
 class GameAllHandler(webapp.RequestHandler):
     def get(self):          
@@ -79,6 +165,9 @@ class UserAllHandler(webapp.RequestHandler):
 class UserHandler(webapp.RequestHandler):
     def get(self):         
         user=self.request.get("name")
+        if not user:
+            self.response.out.write( sorry_404("user " + user) )
+            return
         r = tron_db.Program.all().filter("name",user).get()
         self.response.out.write( header("Profile for '" + user + "'") )
         self.response.out.write( "<table>" )
@@ -90,6 +179,21 @@ class UserHandler(webapp.RequestHandler):
         offs = get_offset(self.request)
         game_table( self.response, query.order('-date').fetch(TABSIZE,offs) )
         self.response.out.write( table_pager( "/games/",query.count()) + "<p>" )
+        self.response.out.write( footer() )
+        
+class UserSourceHandler(webapp.RequestHandler):
+    def get(self):         
+        user=self.request.get("name")
+        p = tron_db.Program.all().filter("name",user).get()
+        if not p:
+            self.response.out.write( sorry_404("botcode for " + user) )
+            return
+        self.response.out.write( header("SourceCode for '" + user + "'") )
+        self.response.out.write( "<br><p>" )
+        self.response.out.write( "<pre>" )
+        self.response.out.write( p.text )
+        self.response.out.write( "</pre>" )
+        self.response.out.write( "<br>" )
         self.response.out.write( footer() )
 
 
@@ -114,118 +218,6 @@ class UserSearchHandler(webapp.RequestHandler):
             s += "sorry, there is no bot named '" + name + "\'."
         s += footer()
         self.response.out.write( s )
-            
-
-
-def drawNaked(key, w, h):
-    game = tron_db.GameInfo.get_by_id(int(key))
-    map = tron_db.Map.get_by_key_name(game.mapname)
-    rep = {}
-    rep['id'] = key
-    rep['turns'] = game.turn
-    rep['players'] = game.players
-    rep['history'] = game.history
-    rep['board'],rep['h'],rep['w'],players = tron.parse_map(map.text)
-
-    return """
-    <!--[if IE]><script src="res/excanvas.compiled.js"></script><![endif]-->    
-    <canvas width=""" +str(w)+ " height=" +str(h+20)+ """ id='C'>
-    <p>
-    <script>
-        the_turn = 0
-        tick = -1
-        replay = """ + simplejson.dumps(rep) + """;
-        dirs={'N':[-1,0],'S':[1,0],'E':[0,1],'W':[0,-1]};
-        colors = {
-            '#':'rgb(100,100,100)',
-            ' ':'rgb(70,70,70)',
-            '1':'rgb(0,0,255)',
-            '2':'rgb(0,255,0)',
-            '3':'rgb(255,0,0)',
-            '4':'rgb(255,255,0)',
-            '5':'rgb(255,0,255)',
-            };
-        sw = Math.floor("""+str(w)+""" / replay['w'])
-        sh = Math.floor("""+str(h)+""" / replay['h'])
-        nplayers = replay['players'].length
-        C = document.getElementById('C')
-        V = C.getContext('2d');
-        for ( i=0; i<nplayers; i++ ) {
-            V.fillStyle = colors[i+1]
-            V.fillText(replay['players'][i], (i+1)*70, 410)
-        }
-        
-        function drawboard(turn) {
-            ppos = []
-
-            // draw base board and collect players
-            for (r=0; r<replay['h']; r++) {
-                for (c=0; c<replay['w']; c++) {
-                    elm = replay['board'][r][c]
-                    if ( elm in ['1','2','3','4'] ) {
-                        ppos[elm-1]= [r,c]
-                    }
-                    V.fillStyle = colors[elm]
-                    V.fillRect(c*sw,r*sh,sw,sh)
-                }
-            }
-            //alert(ppos)
-            // overlay moves
-            for (t=0; t<turn; t++) {
-                for (p=0; p<ppos.length; p++) {
-                    hist = replay['history'][p]
-                    if (hist.length > t) {
-                        dr = dirs[hist[t]][0]
-                        dc = dirs[hist[t]][1]
-                        r  = dr + ppos[p][0] 
-                        c  = dc + ppos[p][1] 
-                        if (r<0) r=0; 
-                        if (c<0) c=0; 
-                        if (r>C.height) r=C.height; 
-                        if (c>C.width)  c=C.width; 
-                        ppos[p][0] = r
-                        ppos[p][1] = c                            
-                        V.fillStyle = colors[p+1]
-                        V.fillRect(c*sw,r*sh,sw,sh)
-                    }
-                }
-            }
-        }
-        function stop() {
-            clearInterval(tick)
-            tick=-1
-        }
-        function back() {
-            stop()
-            if ( the_turn > 0 ) 
-                the_turn -= 1
-            drawboard(the_turn)
-        }
-        function forw() {
-            stop()
-            if ( the_turn < replay['turns'] ) 
-                the_turn += 1
-            drawboard(the_turn)
-        }
-        function pos(t) {
-            stop()
-            the_turn = t
-            drawboard(the_turn)
-        }
-        function play() {
-            tick = setInterval( function() {
-                if (the_turn <= replay['turns'])
-                {
-                    drawboard(the_turn)
-                    the_turn += 1
-                } else {
-                    stop()
-                }
-            },300)
-        }
-        play()
-    </script>"""
-
 
 
 class ReplayVizHandler(webapp.RequestHandler):
@@ -239,27 +231,13 @@ class ReplayVizHandler(webapp.RequestHandler):
         if not w : w=400
         if not h : h=400
         game = tron_db.GameInfo.get_by_id(int(key))
+        if not game:
+            self.response.out.write( sorry_404( "game " + key ) )
+            return
+            
         s  = header()
-        s += "<table border=0 ><tr><td align=center>"
-        s += """
-        <div  width=""" +str(w)+ """>
-        <a href='javascript:pos(0)'>&lt;&lt;</a>&nbsp;
-        <a href='javascript:back()'>&lt;</a>&nbsp;
-        <a href='javascript:stop()'>stop</a>&nbsp;
-        <a href='javascript:play()'>play</a>&nbsp;
-        <a href='javascript:forw()'>&gt;</a>&nbsp;
-        <a href='javascript:pos("""+str(game.turn)+""")'>&gt;&gt;</a>&nbsp;
-        </div>
-        """
-        s += drawNaked( key, w, h )
-        s += "</td><td>"
-        s += "game " + str(game.key().id()) + "<br><br>"
-        s += "map  " + game.mapname + "<br><br>"
-        s += "<table width=100%>"
-        for i,p in enumerate(game.players):
-            s += "<tr><td>" + p + "</td><td>" + str(game.rank[i])+ "</td><td>" + game.history[i] + "</td><td>" + game.errors[i] + "</td></tr>"
-        s += "</table>"
-        s += "</td></tr></table>"
+        map = tron_db.Map.get_by_key_name(game.mapname)
+        s += drawReplay(key,game.players,game.history,game.errors,game.rank,game.mapname,map.text,game.turn,w,h)
         s += footer()
         self.response.out.write( s )
 
@@ -273,13 +251,17 @@ class MainHandler(webapp.RequestHandler):
         It's a small programming competition for bots written in <a href='http://python.org'>Python</a>,<br>
         inspired by the <a href ='http://csclub.uwaterloo.ca/contest'>google ai tron contest</a>,
         and the <a href='http://www.rpscontest.com'>rock-paper-scissors competition</a>.<p>
-        Just <a href='/up/form'>submit your code</a> and let your bot play on this server.<br>
-        You can send in as many bots as you like (though it's more fun playing against other ppl..) <p><br><br>
+        Just <a href='/up/form'>submit your code</a> to the competition, or <a href=/play> code live </a> against the bots on this server.<br>
+        You can update (or submit another bot) as often as you like. <br>
+        bots that caused more than 50 crashes or timeouts will have to expose their source code.<p><br><br>
         Watch the latest game:&nbsp;
         """
         
-        gameid = tron_db.GameInfo.all().order("-date").get().key().id()
-        s += str(gameid) +"<div>" + drawNaked( gameid,200,200 ) + "</div>"
+        game = tron_db.GameInfo.all().order("-date").get()
+        map = tron_db.Map.get_by_key_name(game.mapname)
+        s += str(game.key().id()) +"<div  onBlur='javascript:stop()'>"
+        s += drawNaked(game.players,game.history,map.text,game.turn,200,200 )
+        s += "</div>"
         s += footer()
         self.response.out.write( s )
 
@@ -290,9 +272,11 @@ def main():
     random.seed(time.time())
     application = webapp.WSGIApplication([
         ('/', MainHandler),
+        ('/bots/source', UserSourceHandler),
         ('/bots/search', UserSearchHandler),
         ('/bots/', UserAllHandler),
         ('/bots*.*', UserHandler),
+        ('/play', GamePlayHandler),
         ('/games/', GameAllHandler),
         ('/viz*.*', ReplayVizHandler),
         ], debug=True)

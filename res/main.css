@@ -1,4 +1,4 @@
-body,iframe,textarea,table,input,button,input[type="file"],.but{
+body,iframe,textarea,table,input,button,select,option,scrollbar,input[type="file"],.but{
 	font-family: Arial, "MS Trebuchet", sans-serif;
 	font-size: 12;
 	background-color: #292929; 

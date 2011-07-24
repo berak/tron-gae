@@ -73,6 +73,9 @@ class MapUploadHandler(webapp.RequestHandler):
 class MapShHandler(webapp.RequestHandler):
     def get(self):          
         key = self.request.get("key")
+        if not key:
+            self.response.out.write( sorry_404("map " + key) )
+            return
         m = tron_db.Map.get_by_key_name( key )
         
         self.response.out.write( header(m.key().name() + " by " + m.author) )

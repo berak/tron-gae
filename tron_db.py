@@ -55,7 +55,10 @@ class Program(db.Model):
             s += "<td title='winrate=%2.2f'>%d</td>" % ( float(self.won)/self.ngames, self.won)
         else:
             s += "<td>"+str(self.won)+"</td>"
-        s += "<td>"+str(self.errors)+"</td></tr>"
+        s += "<td width=16%>"+str(self.errors)
+        if self.errors >= 50:
+            s += "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=/bots/source?name="+name+">view source</a>"
+        s += "</td></tr>"
         return s
         
     def reset(self, mu=30.0):
