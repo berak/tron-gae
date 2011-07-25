@@ -28,7 +28,7 @@ def parse_map( maptext ):
 			cc = c
 		else:
 			if c != cc:
-				raise MapLineSizeError("lines")
+				raise MapLineSizeError("your lines haven't all the same length.")
 		r += 1
 	#~ print( "map: " + str(r) + " " + str(c))
 	#~ logging.info( "map: " + str(r) + " " + str(c))
@@ -162,9 +162,9 @@ class Game(object):
 			if debug:
 				self.print_board()
 			self.turn += 1
-			if self.alive() <= 1 and self.turn >= 200:
+			if self.alive() < 1: 
 				break
-			if self.turns > 500:
+			if self.turn > 400:
 				break
 		if debug: 
 			for i,p in enumerate(self.players):	print p['score'], p['id'], p['name'], len(p['hist']), p['hist'], self.errors[i]

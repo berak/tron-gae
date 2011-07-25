@@ -253,7 +253,8 @@ class MainHandler(webapp.RequestHandler):
         and the <a href='http://www.rpscontest.com'>rock-paper-scissors competition</a>.<p>
         Just <a href='/up/form'>submit your bot</a> to the competition, or <a href=/play> code live </a> against the bots on this server.<br>
         You can update (or submit another bot) as often as you like. <br>
-        Bots that caused more than 50 crashes or timeouts will see their source code exposed.<p><br><br>
+        Bots that caused more than 50 crashes or timeouts will see their source code exposed,<br>
+        whenever you update though, your bot will start from scratch.<p><br><br>
         Watch the latest game:&nbsp;
         """
         

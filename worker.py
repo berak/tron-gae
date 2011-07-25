@@ -24,7 +24,7 @@ from Header import header,footer
 TS_MU = 38.0
 MGAMES = 1
 TIMEOUT_RANK = 200
-TIMEOUT_WORK = 9
+TIMEOUT_WORK = 8
 
 
 
